@@ -1,6 +1,4 @@
-emulate sh
-source ~/.profile
-emulate zsh
+[[ -f ~/.profile ]] && emulate sh -c '. ~/.profile'
 
 # Setup the PATH for pyenv binaries and shims
 export PYENV_ROOT="$HOME/.pyenv"
