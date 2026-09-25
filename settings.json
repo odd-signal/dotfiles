@@ -30,6 +30,7 @@
         ".asset-cache": true,
         ".bundle": true,
         ".ipynb_checkpoints": true,
+
         ".pytest_cache": true,
         ".sass-cache": true,
         ".svn": true,
@@ -60,7 +61,7 @@
     "notebook.diff.ignoreMetadata": true,
     "notebook.lineNumbers": "on",
     "notebook.markup.fontSize": 13,
-    "python.defaultInterpreterPath": "~/.pyenv/shims/python",
+    "python.defaultInterpreterPath": "/usr/bin/python3",
     "python.formatting.provider": "yapf",
     "python.languageServer": "Pylance",
     "python.linting.enabled": false,
@@ -84,4 +85,6 @@
     "workbench.settings.useSplitJSON": true,
     "workbench.startupEditor": "newUntitledFile",
     "workbench.panel.defaultLocation": "right",
+    "files.autoSave": "afterDelay",
+    "maven.executable.path": "/Users/broto/apache-maven-3.9.1/bin/mvn",
 }

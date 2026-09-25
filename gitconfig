@@ -60,5 +60,11 @@
 [init]
   defaultBranch = master
 [user]
-	email = brotomann@gmail.com
-	name = Ivan Brown
+	email = fcm6ph9jzr@privaterelay.appleid.com
+	name = odd-signal
+[credential "https://github.com"]
+	helper = 
+	helper = !/opt/homebrew/bin/gh auth git-credential
+[credential "https://gist.github.com"]
+	helper = 
+	helper = !/opt/homebrew/bin/gh auth git-credential

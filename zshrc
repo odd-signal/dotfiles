@@ -70,3 +70,15 @@ export EDITOR=code
 
 # Set ipdb as the default Python debugger
 export PYTHONBREAKPOINT=ipdb.set_trace
+
+# Created by `pipx` on 2026-04-27 09:42:36
+export PATH="$PATH:/Users/broto/.local/bin"
+export PATH="$HOME/.local/bin:$PATH"
+
+# Agent shells never inherit interactive aliases. Claude Code exports CLAUDECODE=1; an
+# aliased `cp -i` in a headless shell prompts nobody, silently does nothing, and reports
+# success — which is how a restore-over-existing-file no-opped on 2026-08-02 and left a
+# deliberately broken value in a content file. Adding -f does not help: the alias wins.
+# Must stay last — ~/.aliases is sourced above.
+[[ -n "$CLAUDECODE" ]] && unalias -m '*'
+alias moon='mosh --server=/opt/homebrew/bin/mosh-server moon -- /opt/homebrew/bin/tmux new -A -s main'
