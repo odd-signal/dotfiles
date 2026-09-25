@@ -14,14 +14,16 @@ SCREEN_LOCK=leave             # leave | off  (off = no password after display sl
 UPS_HALT_LEVEL=20             # shut down cleanly at this UPS battery %
 UPS_HALT_REMAIN=5             # ...or at this many minutes of runtime left
 LMS_PORT=1234
-TIER0_MODEL=""                # tier-0 model key from `lms ls` (~5GB). Empty = don't pin anything
-TIER0_ID="tier0"              # identifier the pinned model gets (what clients request)
-
+TIER0_MODEL="qwen/qwen3.6-35b-a3b"
+TIER0_ID="qwen/qwen3.6-35b-a3b"
 # Tailscale Serve map: "https_port|path|local_target". Services must bind 127.0.0.1.
 # Path mounts (/x) only work for apps that support a base path; otherwise give the app its own port.
 SERVE_MAP=(
-  # "443|/|http://127.0.0.1:<os-dashboard-port>"
-  # "8443|/|http://127.0.0.1:1234"            # LM Studio API for the Air + Claude sessions
+  "443|/|http://127.0.0.1:4870"   # add at the dashboard cutover
+  "8443|/|http://127.0.0.1:1234"     # LM Studio API (the Air's dispatcher can use it now)
+  "10000|/|http://127.0.0.1:8787"    # invoice
+  "10001|/|http://127.0.0.1:8020"    # stockwatch
+  "10002|/|http://127.0.0.1:8420"    # dimmer
 )
 
 # Kept out of Time Machine (re-downloadable or regenerable). Skipped if missing.
@@ -43,7 +45,7 @@ log()  { printf '\n\033[1;34m==> %s\033[0m\n' "$*"; }
 ok()   { printf '    \033[32m✓\033[0m %s\n' "$*"; }
 chg()  { printf '    \033[33m↻\033[0m %s\n' "$*"; }
 warn() { printf '    \033[31m!\033[0m %s\n' "$*"; }
-run()  { if [[ $DRY == 1 ]]; then printf '      [dry] %s\n' "$*"; else "$@"; fi; }
+run()  { if [[ $DRY == 1 ]]; then printf '      [dry] %s\n' "$*"; else "$@" || warn "failed: $*"; fi; }
 want() { [[ -z $ONLY || ",$ONLY," == *",$1,"* ]]; }
 
 while (($#)); do
@@ -73,7 +75,8 @@ pm() { # pmset key value (all power sources); skips keys this Mac doesn't suppor
   pmset -g cap | grep -qw "$k" || { warn "pmset $k not supported here — skipped"; return 0; }
   cur=$(pmset -g | awk -v k="$k" '$1==k{print $2; exit}')
   if [[ $cur == "$v" ]]; then ok "pmset $k=$v"
-  else chg "pmset $k: ${cur:-unset} -> $v"; run sudo pmset -a "$k" "$v"; fi
+  else chg "pmset $k: ${cur:-unset} -> $v"
+  run sudo pmset -a "$k" "$v" || warn "pmset rejected $k=$v — skipped"; fi
 }
 
 dw() { # domain key type value   (user defaults)
@@ -102,11 +105,11 @@ install_plist() { # scope(system|gui) path content
   chg "installing $path"
   if [[ $scope == system ]]; then
     run sudo cp "$tmp" "$path"; run sudo chown root:wheel "$path"; run sudo chmod 644 "$path"
-    run sudo launchctl bootout "system/$label" 2>/dev/null || true
+    [[ $DRY == 1 ]] || sudo launchctl bootout "system/$label" 2>/dev/null || true
     run sudo launchctl bootstrap system "$path" || warn "bootstrap failed for $label"
   else
     run mkdir -p "$(dirname "$path")" "$LOG_DIR"; run cp "$tmp" "$path"
-    run launchctl bootout "gui/$UID/$label" 2>/dev/null || true
+    [[ $DRY == 1 ]] || launchctl bootout "gui/$UID/$label" 2>/dev/null || true
     run launchctl bootstrap "gui/$UID" "$path" \
       || warn "bootstrap failed — is broto logged in on the Mini? It will load at next login"
   fi
@@ -122,10 +125,13 @@ sec_power() {
   pm autorestart 1
   pm powernap 0
   pm ttyskeepawake 1
-  local mode=0; [[ $POWER_MODE == high ]] && mode=2
-  if pmset -g cap | grep -qw powermode; then pm powermode "$mode"
-  elif pmset -g cap | grep -qw highpowermode; then pm highpowermode $(( mode == 2 ? 1 : 0 ))
-  else warn "no power-mode key on this Mac — skipped"; fi
+  if [[ $POWER_MODE == high ]]; then
+    if pmset -g cap | grep -qw powermode; then pm powermode 2
+    elif pmset -g cap | grep -qw highpowermode; then pm highpowermode 1
+    else warn "no power-mode key on this Mac — skipped"; fi
+  else
+    ok "power mode left on Automatic (macOS default)"
+  fi
   if sudo systemsetup -getrestartfreeze 2>/dev/null | grep -q "On"; then ok "restart after freeze on"
   else chg "restart after freeze -> on"
     run sudo systemsetup -setrestartfreeze on >/dev/null 2>&1 \
