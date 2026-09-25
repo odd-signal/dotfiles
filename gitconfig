@@ -60,7 +60,7 @@
 [init]
   defaultBranch = master
 [user]
-	email = fcm6ph9jzr@privaterelay.appleid.com
+	email = 290953159+odd-signal@users.noreply.github.com
 	name = odd-signal
 [credential "https://github.com"]
 	helper = 
